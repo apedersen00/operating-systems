@@ -1,0 +1,511 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\section{Question 1}
+
+\subsection{Task 1}
+
+What are the main OS distributions today? What do you think are the relationship of an OS and kernel? Please name three main tasks that Operating Systems do.
+
+\subsection*{Solution}
+
+An Operating System (OS) acts as an intermediary between a user and the computer hardware, with the primary goals of executing user programs efficiently, making the computer system convenient to use, and utilizing hardware efficiently.
+
+\textbf{Key OS distributions today include:}
+\begin{itemize}
+    \item \textbf{GNU} (GNU's Not Unix!): Established in 1983
+    \item \textbf{Mac OS}: Introduced in 1984
+    \item \textbf{Microsoft Windows}: Launched in 1985
+    \item \textbf{Linux}: Created in 1991. Popular Linux distros include Ubuntu, Fedora and Debian
+\end{itemize}
+
+\textbf{From Slide 9 (Lecture1), the three main tasks of an OS are:}
+\begin{enumerate}
+    \item \textbf{Execute user programs in isolation}: This ensures that programs run independently without interfering with each other.
+    \item \textbf{Make the computer system convenient to use}: The OS simplifies interactions with the computer hardware for the user.
+    \item \textbf{Efficiently use computer hardware}: The OS manages resources like CPU, memory, disk, and network to ensure optimal performance and fair distribution among conflicting requests.
+\end{enumerate}
+
+These are achieved through:
+\begin{itemize}
+    \item Process management
+    \item Memory management
+    \item I/O and device management
+    \item File system management
+    \item Security and protection
+\end{itemize}
+
+\textbf{What do you think is the relationship between an OS and the kernel?}
+
+The kernel is the core program of the operating system that is always running on the computer, managing hardware resources like CPU, memory, and I/O and providing essential services like mode switching between user mode (for applications) and kernel mode (for privileged operations). The operating system (OS) is a broader term that encompasses the kernel but also includes all the system programs (e.g., compilers, shells, daemons) and user interfaces (e.g., GUI, command-line) that build a complete, usable computing environment on top of it.
+
+\subsection{Task 2} \label{sec:q1t2}
+
+Specify the Linux environment you choose to use for this course. Which OS distribution and kernel version do you have?
+
+\subsection*{Solution}
+
+Our chosen Linux environment is Ubuntu 22.04 LTS (Jammy Jellyfish) with kernel version 5.15.0-73-generic.
+
+\subsection{Task 3}
+
+Please specify the commands you used in the previous question for checking the information.
+
+\subsection*{Solution}
+
+The commands used are shown below.
+
+\begin{bashcmd}[title=Show OS distribution]
+lsb_release -a
+\end{bashcmd}
+
+\begin{bashcmd}[title=Show kernel version]
+uname -r
+\end{bashcmd}
+
+\newpage
+\section{Question 2}
+
+Analyze this code that calls \lstinline{fork()} to create a child process. Try to compile and run this program on your Linux system.
+
+\begin{cppminted}{Question 2 - Application}
+#include <stdio.h>
+#include <unistd.h>
+
+int main() {
+    int pid = fork();
+
+    if (pid == 0) {
+        printf("I'm the child %d\n", getpid());
+    }
+    else {
+        printf("My child is called %d\n", pid);
+        sleep(10);
+    }
+
+    printf("PID%d says goodbye\n", getpid());
+    return 0;
+}
+\end{cppminted}
+
+\subsection{Task 1}
+
+Please explain what is the purpose of inspecting the returned value from \lstinline{fork()}.
+
+\subsection*{Solution}
+
+The \lstinline{fork()} system call creates a new process running the same image as the current one. The new process, called the child, is \textit{forked} from the original process, the parent. In the parent process, \lstinline{fork()} returns the process ID (pid) of the child.
+
+Inspecting the returned value from \lstinline{fork()} therefore allows us to identify whether we are in the child process or the parent process.
+
+\subsection{Task 2}
+
+Explain what a zombie process and orphan process mean. In the code, do you see any zombie and orphan process? Explain why.
+
+\subsection*{Solution}
+
+Often the parent process will want to obtain information about when one of its child processes terminates, e.g., the return value. If a child process were to be entirely removed from memory upon termination, there would be nothing left for the parent to investigate. Therefore, the kernel puts the child into a special state. A process in this state is known as a \textit{zombie}. A zombie process is essentially a skeleton of what once was the process, containing basic data structures for retaining useful data. A zombie process waits for its parent to inquire about its status using, e.g., \lstinline{wait()}. Once its status has been inquired, the child is formally terminated and ceases to exist as a zombie \cite{love}.
+
+An orphaned process is a child process whose parent has been terminated without performing \lstinline{wait()}. In this case, the child is adopted by the \lstinline{init} process \cite{love} \cite{kerrisk}.
+
+The application for this question creates a child process with \lstinline{fork()}, but does not perform a \lstinline{wait()}. The child is nearly immediately killed after creation. The parent waits for 10 seconds before being terminated. Within those 10 seconds, the child is a zombie process, existing as a skeleton in the hopeful expectation that its parent might inquire about it. Upon termination of its parent, the now orphaned zombie process is adopted by the \lstinline{init} process, which calls \lstinline{wait()} and terminates the child.
+
+\subsection{Task 3}
+
+Run the code and check the status of the processes using the \lstinline{ps} command. What statuses do you see for the parent process? What statuses do you see for the child process? 
+
+\subsection*{Solution}
+
+The output of the application is shown below. Line 4 is printed by the parent after 10 seconds.
+
+\begin{mintedterminal}{\lstinline{> ./q2}}
+My child is called 29734
+I'm the child 29734
+PID29734 says goodbye
+PID29733 says goodbye
+\end{mintedterminal}
+
+If we run the \lstinline{ps} command within 10 seconds after executing the application, we see the parent process and the zombie child process. Executing \lstinline{ps} after 10 seconds shows no output, as the parent process is terminated and the orphaned child has been adopted and killed by the \lstinline{init} process.
+
+\begin{mintedterminal}{\lstinline{> ps a | grep q2}}
+29733 pts/11   S+     0:00 ./q2
+29734 pts/11   Z+     0:00 [q2] <defunct>
+29740 pts/12   S+     0:00 grep --color=auto q2
+\end{mintedterminal}
+
+\newpage
+\section{Question 3}
+
+Analyze the following code and consider the case where this program is executed by a process. Describe the expected memory layout and explain the parts that will be stored in the text, data, heap, and stack section, respectively. Your analysis should include all variables.
+
+\begin{cppminted}{Question 3 - Application}
+#define N 1024
+
+double sum;
+double *a;
+
+double getSum(double *x) {
+    int i;
+    double s = 0;
+
+    for (i = 0; i < N; i++) {
+        s += x[i];
+    }
+    return s;
+}
+
+int main() {
+    int i;
+    a = (double*) malloc(N*sizeof(double));
+
+    for (i = 0; i < N; i++) {
+        a[i] = i;
+    }
+
+    sum = getSum(a);
+    printf("sum = %.2f\n", sum);
+    return 0;
+}
+\end{cppminted}
+
+\subsection*{Solution}
+
+\begin{itemize}
+    \item \textbf{Text Section:} Contains the executable machine code for the \texttt{main} and \texttt{getSum} functions, including the loop logic for array initialization and summation. This section is read-only and loaded from the executable file, starting at a low virtual address (e.g., \texttt{0x400000} in ELF binaries).
+    
+    \item \textbf{Data Section:} Stores the string literal \texttt{"sum = \%.2f\textbackslash n"} used in \texttt{printf} as a read-only constant. This section is minimal since no initialized global variables are defined.
+    
+    \item \textbf{BSS Section:} Holds uninitialized global variables, zero-initialized by the OS loader. Includes \texttt{double sum} (8 bytes, initialized to 0.0) and \texttt{double *a} (8 bytes, initialized to \texttt{NULL}), which persists throughout the program and is accessible across functions.
+    
+    \item \textbf{Heap Section:} Contains the dynamically allocated array of 1024 \texttt{double} values (8192 bytes total) allocated by \texttt{malloc(N * sizeof(double))} in \texttt{main}. The array is initialized with values 0 to 1023 (e.g., \texttt{a[0] = 0.0}, \ldots, \texttt{a[1023] = 1023.0}), and the pointer \texttt{a} (in BSS) references this block.
+    
+    \item \textbf{Stack Section:} Manages automatic variables and function call frames, growing downward. Includes:
+    \begin{itemize}
+        \item In \texttt{main}: \texttt{int i} (4 bytes) for the initialization loop.
+        \item In \texttt{getSum}: \texttt{int i} (4 bytes) for the summation loop, \texttt{double s} (8 bytes) to accumulate the sum ($\approx 523776.0$), and the parameter \texttt{double *x} (8 bytes) pointing to the heap array.
+        \item Temporary frames for return addresses and implicit parameters (e.g., frame pointer). The stack unwinds after each function returns.
+    \end{itemize}
+\end{itemize}
+
+\newpage
+\section{Question 4}
+
+\subsection{Task 1}
+
+How many processes will be created by the following code (including the parent process)?
+
+\begin{cppminted}{Question 4 - Application}
+#define N 3
+
+int main() {
+    for (int i = 0; i < N; i++) {
+        fork();
+        fork();
+    }
+    return 0;
+}
+\end{cppminted}
+
+\subsection*{Solution}
+
+The number of processes, $P$ will be:
+
+$$
+    P = 4^3 = 64
+$$
+
+\subsection{Task 2}
+
+How will you verify the number of processes created in this program?
+
+\subsection*{Solution}
+
+If we rewrite the code to look like the code below, once we run the program, we count the number of printouts of "END" that appear. That number equates to the number of processes created.
+
+\begin{cppminted}{Question 4 - Verification of number of processes created}
+#define N 3
+
+int main() {
+    for (int i = 0; i < N; i++) {
+        fork();
+        fork();
+    }
+    printf("END");
+    return 0;
+}
+\end{cppminted}
+
+\newpage
+
+\subsection{Task 3}
+
+How many processes are created as a function of N?
+
+\subsection*{Solution}
+
+We use recurrence to solve this problem. Consider function $f(N)$ denoting the number of processes given the value $N$. The recurrence formula would be $f(N) = 4f(N-1)$, as in each iteration of the loop, 3 additional processes are created (4 processes total) for each existing process. Evidently, $f(1) = 4$ [Base Case]. Thus, by solving the recurrence, we get the formula $f(N)=4^N$.
+
+\newpage
+\section{Question 5}
+
+\subsection{Task 1}
+
+Which of the following may be shared between the parent and child process after forking? Explain your answer.
+
+\begin{itemize}
+    \item Program
+    \item Process ID
+    \item File descriptors
+    \item Program counter
+\end{itemize}
+
+\subsection*{Solution}
+
+We will explain the answer for each of them one by one.
+
+\begin{itemize}
+    \item \textbf{Program}: It is shared. A program is stored in the text segment. When the child process is created, as it is merely a duplicate of the parent process, the process it runs functionally is from the same program. Thus, both processes will share the program and access it from the same memory according to their program counters. The program is shared as both the child and parent processes run the same program at the corresponding address according to its program counter.
+    
+    \item \textbf{Process ID}: It is not shared. When the new child process is created via fork, if the fork value does not return 0 (i.e., \lstinline{fork() != 0}), that specific value represents the PID of the new child process, which differs from the parent process. Each process must be uniquely identified. If the PID were the same, we could not distinguish a child process from a parent process.
+    
+    \item \textbf{File descriptors}: It is shared. The child process is copied from the parent process, but the process is still being run from the same file resources.
+    
+    \item \textbf{Program counter}: It is not shared. The immediate program counter of the parent process after forking will be copied to the child process, but it is not shared, as both processes can execute their subsequent commands independently of each other. Consider the scenario where a conditional jump only triggers for the child process. In that case, the parent and child processes would have different program counters.
+\end{itemize}
+
+\subsection{Task 2}
+
+Which of the following may be shared among threads in a multi-threaded process? Explain your answer.
+
+\begin{itemize}
+    \item Registers
+    \item Heap
+    \item Global variables
+    \item Stack
+\end{itemize}
+
+\subsection*{Solution}
+
+For reference, the figure [\cref{fig:q5}] displays how resources and memory space are allocated to each thread.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.7\linewidth]{assets/q5.png}
+    \caption{Single-threaded and multithreaded process.}
+    \label{fig:q5}
+\end{figure}
+
+We will explain the answer for each of them one by one.
+
+\begin{itemize}
+    \item \textbf{Registers}: They are not shared. Each thread has a corresponding set of registers that get incremented or decremented according to the program code being executed. During context switching, the previous register values are saved into memory. When the previous corresponding process returns to running again, the original register values are reloaded from memory, preventing errors. Imagine a scenario where context switching occurred and process B interrupts process A, then process A returns to running after process B is interrupted. The set of registers for A would be different before and after the switch if the registers were shared. To prevent this, the registers must never be shared.
+    
+    \item \textbf{Heap}: It is shared. A heap is stored in memory for dynamic memory allocation, which is accessed by all threads.
+    
+    \item \textbf{Global variables}: They are shared. Global variables are stored in the data segment, which is accessed by all threads.
+    
+    \item \textbf{Stack}: It is not shared. Each thread has a corresponding stack that changes according to the program code being executed. Imagine a scenario where context switching occurred and process B interrupts process A, then process A returns to running after process B is interrupted. The stack for process A would be different before and after the switch if the stack were shared. To prevent this, the stacks must never be shared.
+\end{itemize}
+
+\newpage
+\section{Question 6}
+
+Consider the following application:
+
+\begin{cppminted}{Question 6 - Application}
+#define N 5
+int value = 0;
+void *thread_func(void *param);
+
+int main(int argc, char *argv[]) {
+    pid_t pid;
+    pthread_t tid;
+    pthread_attr_t attr;
+
+    pid = fork();
+
+    if (pid == 0) {
+        pthread_attr_init(&attr);
+        for (int i = 0; i < N; i++) {
+            pthread_create(&tid, &attr, thread_func, NULL);
+            pthread_join(tid, NULL);
+        }
+        printf("CHILD: value = %d\n", value);
+    }
+    else if (pid > 0) {
+        wait(NULL);
+        printf("PARENT: value = %d\n", value);
+    }
+}
+
+void *thread_func(void *param) {
+    value++;
+    pthread_exit(0);
+}
+\end{cppminted}
+
+\subsection{Task 1}
+
+What will be the printout of \lstinline{CHILD: value=}? Explain your answer.
+
+\subsection*{Solution}
+
+The printout will be "CHILD: value=5".
+
+The program uses \lstinline{fork()} to create a child process. After the fork, both the parent and child processes start with the same initial value of \lstinline{value}, which is 0. Processes do \textit{not} share global data.
+
+In the child process (where \lstinline{pid == 0}), the code creates N (5) threads using \lstinline{pthread_create}. Each thread executes \lstinline{thread_func}, which increments \lstinline{value} by 1 and then exits. Since threads within the same process share a single memory space, including global data, the child's global variable, \lstinline{value}, will be incremented.
+
+The call to \lstinline{pthread_join} successfully terminates each thread before starting the next. After looping through and creating all $N = 5$ threads, the final \lstinline{value} of 5 is printed.
+
+\subsection{Task 2}
+
+What will be the printout of \lstinline{PARENT: value=}? Explain your answer.
+
+\subsection*{Solution}
+
+The printout will be "PARENT: value=0".
+
+In the parent process (where \lstinline{pid > 0}), the \lstinline{wait(NULL)} call ensures the parent waits for the child process to finish. However, the parent does not create any threads or modify the \lstinline{value} itself.
+
+Since \lstinline{value} is a global variable, the parent's copy of \lstinline{value} is separate from the child's due to process memory isolation after the fork. The child's threads increment its own \lstinline{value}, but this has no effect on the parent's \lstinline{value}.
+
+Thus, the parent prints its initial value of 0, which remains unchanged throughout the program's execution in the parent context.
+
+\newpage
+\section{Question 7}
+
+Write a C program based on the \lstinline{fork()} system call. The program will create 2 child processes and perform the following tasks:
+
+\begin{itemize}
+    \item The parent process will create an array of N random numbers whose values are in the range of $[0, 1]$. N is passed by the user via function arguments.
+    \item Child 1 will find the sum of the first half of the array.
+    \item Child 2 will find the sum of the second half of the array.
+    \item The parent will print the sum of the whole array using the results returned by the two child processes.
+    \item Add a timer to time from the process creation till parent printing the final result.
+\end{itemize}
+
+\subsection*{Solution}
+
+The proposed solution is found in \lstinline{applications/src/q7.c}. The parent allocates an array of N elements and fills it with randomly generated values in the range [0, 1]. To handle communication between the parent and the children, we use \textit{pipes}, where the children will put the sum of their corresponding half of the array. The application code relating to the first child is shown below:
+
+
+\begin{cppminted}{q7.c}
+// child 1, process first half of array
+pid_t pid_1 = fork();
+if (pid_1 == 0) {
+    close(pipe_1[0]);
+
+    int sum = 0;
+    for (int j = 0; j < N/2; j++) {
+        sum += arr[j];
+    }
+
+    write(pipe_1[1], &sum, sizeof(sum));
+    close(pipe_1[1]);
+    return 0;
+}
+\end{cppminted}
+
+Example output from the application with $N = 1000$ is shown below:
+
+\begin{mintedterminal}{./q7.c}
+Sum from Child 1 (first half):    258
+Sum from Child 2 (second half):   258
+Parent total sum:                 516
+Total time taken:                 773 us
+\end{mintedterminal}
+
+\newpage
+
+To analyze the time taken with as much certainty as possible, a Python script was written that runs the application 1000 times for each value of N and then calculates the average and standard deviation. The application was run on an AMD Ryzen 9950X3D system. The average execution times and standard deviations are summarized in \cref{tab:q7} and \cref{fig:q7}.
+
+We see that for $N \in \{100, 1000, 10000, 100000\}$, the average execution time is nearly the same. This phenomenon is likely due to the overhead caused by \lstinline{fork()} (process creation) being the main contributor to execution time. For $N = 1000000$, the execution time is increased ($\sim786 \mu\si{s}$ vs. $\sim264 \mu\si{s}$), as summing this many numbers requires significantly more computation. The overhead of the arithmetic becomes comparable to the \lstinline{fork()} overhead.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.8\linewidth]{assets/execution_times.png}
+    \caption{Average times and standard deviations for summing an array of N-size with two subprocesses (children).}
+    \label{fig:q7}
+\end{figure}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{r|r r}
+        N & Average $[\mu s]$ & Std. Deviation $[\mu s]$ \\
+        \hline
+        100     & 235.5 & 29.6  \\
+        1000    & 243.0 & 26.1  \\
+        10000   & 247.7 & 24.7  \\
+        100000  & 263.7 & 29.3  \\
+        1000000 & 786.0 & 133.4 \\ 
+    \end{tabular}
+    \caption{Average times and standard deviations for summing an array of N-size with two subprocesses (children).}
+    \label{tab:q7}
+\end{table}
+
+\newpage
+\section{Question 8}
+
+Analyze the following codes for using FIFO for IPC.
+
+\begin{cppminted}{Question 8 - Application 1}
+int main() {
+    const char *name = "/tmp/myfifo";
+    const char *msg  = "hello";
+    int fd;
+
+    mkfifo(name, 0666);
+
+    fd = open(name, O_WRONLY);
+    write(fd, msg, strlen(msg) + 1);
+    close(fd);
+
+    unlink(name);
+
+    return 0;
+}
+\end{cppminted}
+
+\begin{cppminted}{Question 8 - Application 2}
+int main() {
+    const char *name = "/tmp/myfifo";
+    char recv_buf[BUFSIZE];
+    int fd;
+
+    mkfifo(name, 0666);
+
+    sleep(10);
+
+    fd = open(name, O_RDONLY);
+    read(fd, recv_buf, BUFSIZE);
+    close(fd);
+
+    printf("Received %s \n", recv_buf);
+
+    return 0;
+}
+\end{cppminted}
+
+\subsection{Task 1}
+
+Identify Producer and Consumer in these two codes.
+
+\subsection*{Solution}
+
+We see that Application 1 is the Producer. It opens a FIFO as \textit{write only} (\lstinline{O_WRONLY}) and writes the string "hello". In contrast, Application 2 is the Consumer. It initializes a receiving buffer and opens a FIFO as \textit{read only} (\lstinline{O_RDONLY}).
+
+\subsection{Task 2}
+
+Analyse the time dependency among the Producer and Consumer processes. Draw a timeline to illustrate the main function calls including mkfifo, open, read/write, close, unlink, print, in the producer and consumer processes.
+
+\subsection*{Solution}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{assets/q8.png}
+    \caption{Time dependency among the Producer and Consumer processes.}
+\end{figure}
+
+\end{document}
