@@ -17,13 +17,13 @@ Write a C program to use a group of threads to parallelize the sum of an array.
 
 \subsection*{Solution}
 
-To parallelize the summing of the array, we first generate the array and compute the serial sum. The array is filled with random doubles in range $[0, 1]$ using \lstinline{rand()}:
+To parallelize the summing of the array, we first generate the array and compute the serial sum. The array is filled with random floats in range $[0, 1]$ using \lstinline{rand()}:
 
 \begin{cppcode}{q3.c - Initialization and serial summing of array}
 srand(time(NULL));
 for (int i = 0; i < ARR_SIZE; i++)
 {
-    arr[i] = (double)rand() / (double)(RAND_MAX);
+    arr[i] = (float)rand() / (float)(RAND_MAX);
 }
 
 double sum_serial = 0.0;
@@ -33,7 +33,7 @@ for (int i = 0; i < ARR_SIZE; i++)
 }
 \end{cppcode}
 
-For parallelization, each thread computes a partial sum of a slice of the array. To pass information to the threads we defined a small struct:
+For parallelization, each thread computes a partial sum of a slice of the array. All sums are stored in doubles to improve precision. To pass information to the threads we defined a small struct:
 
 \begin{cppcode}{q3.c - Struct for thread arguments}
 typedef struct{
@@ -41,8 +41,6 @@ typedef struct{
     double *partial_sums;
 } thread_arg_t;
 \end{cppcode}
-
-where
 
 \begin{itemize}
     \item \textbf{thread\_id}: Thread identifier. Used to compute it's corresponding chunk of the array.
@@ -102,23 +100,23 @@ By storing each threads partial sum in the array, we don't need to use mutex loc
 
 \begin{textcode}{> ./q3 8}
 --- Master Sum ---
-Serial sum:   500131.289269,    Serial time: 2197 us
+Serial sum:   500320.812500,    Serial time: 2224 us
 
 --- Threads ---
-Thread 0 sum = 62493.302477
-Thread 1 sum = 62537.609934
-Thread 3 sum = 62536.972809
-Thread 2 sum = 62594.181343
-Thread 4 sum = 62512.408019
-Thread 5 sum = 62783.233108
-Thread 6 sum = 62187.400245
-Thread 7 sum = 62486.181335
+Thread 0 sum = 62695.894531
+Thread 1 sum = 62552.230469
+Thread 2 sum = 62480.328125
+Thread 3 sum = 62469.359375
+Thread 4 sum = 62528.675781
+Thread 5 sum = 62318.031250
+Thread 6 sum = 62521.257812
+Thread 7 sum = 62764.535156
 
 --- Thread Sum ---
-Parallel Sum: 500131.289269,    Parallel time: 1065 us
+Parallel Sum: 500330.312500,    Parallel time: 1038 us
 \end{textcode}
 
-To measure the performance of the approach and how it scales with the number of threads, a Python script was created that run the application 100 times for $\text{num\_threads} \in [1, 16]$. The result is shown in \cref{fig:q3_exe}. We see that compared to the simple, serial approach this is some overhead in the creation of threads, as $\text{num\_threads} = 1$ is slightly slower than the baseline. However, as the number of threads is increased we see a performance increase until $\text{num\_threads} > 8$, whereafter the overhead of thread creation diminishes performance. On our system the optimal number of threads is therefore $\text{num\_threads} = 8$.
+To measure the performance of the approach and how it scales with the number of threads, a Python script was created that run the application 100 times for $\text{num\_threads} \in [1, 16]$. The result is shown in \cref{fig:q3_exe}. We see that compared to the simple, serial approach this is some overhead in the creation of threads, as $\text{num\_threads} = 1$ is slightly slower than the baseline. However, as the number of threads is increased we see a performance increase until $\text{num\_threads} > 6$, whereafter the overhead of thread creation diminishes performance. On our system the optimal number of threads is therefore $\text{num\_threads} = 6$.
 
 \newpage
 

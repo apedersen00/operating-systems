@@ -9,7 +9,7 @@
 
 #define ARR_SIZE 1000000
 
-double arr[ARR_SIZE];
+float arr[ARR_SIZE];
 int num_threads;
 
 typedef struct {
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     for (int i = 0; i < ARR_SIZE; i++)
     {
-        arr[i] = (double)rand() / (double)(RAND_MAX);
+        arr[i] = (float)rand() / (float)(RAND_MAX);
     }
 
     /* === Start timer === */
