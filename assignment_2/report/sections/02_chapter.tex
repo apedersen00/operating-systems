@@ -1,0 +1,132 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\section{Question 3}
+
+Write a C program to use a group of threads to parallelize the sum of an array.
+
+\begin{enumerate}
+    \item The master threads performs a Serial Sum first. It creates an array of 1,000,000 random floats in [0, 1], and prints out the sum of the array.
+    \item Then, a group of worker threads are created. Each thread is assigned wiht a unique ID.
+    \item Modify the code so that each thread sums up a portion of the array, and a final result is aggregated by the master thread from all threads' results and print out. Briefly describe your design of work distribution among threads.
+    \item Add 2 timers. One measures the time spent in the serial sum and one measures the parallel sum.
+    \item Run your program with 4, 8, 12, 16 threads.
+    \item Make a bar chart to visualize your results.
+\end{enumerate}
+
+\subsection*{Solution}
+
+To parallelize the summing of the array, we first generate the array and compute the serial sum. The array is filled with random doubles in range $[0, 1]$ using \lstinline{rand()}:
+
+\begin{cppcode}{q3.c - Initialization and serial summing of array}
+srand(time(NULL));
+for (int i = 0; i < ARR_SIZE; i++)
+{
+    arr[i] = (double)rand() / (double)(RAND_MAX);
+}
+
+double sum_serial = 0.0;
+for (int i = 0; i < ARR_SIZE; i++)
+{
+    sum_serial += arr[i];
+}
+\end{cppcode}
+
+For parallelization, each thread computes a partial sum of a slice of the array. To pass information to the threads we defined a small struct:
+
+\begin{cppcode}{q3.c - Struct for thread arguments}
+typedef struct{
+    int thread_id;
+    double *partial_sums;
+} thread_arg_t;
+\end{cppcode}
+
+where
+
+\begin{itemize}
+    \item \textbf{thread\_id}: Thread identifier. Used to compute it's corresponding chunk of the array.
+    \item \textbf{partial\_sums}: Points to an array allocated in the main thread, where each thread will store it's result in a distinct slot.
+\end{itemize}
+
+Threads are created as follows:
+
+\begin{cppcode}{q3.c - Creation of threads}
+pthread_t *workers = malloc(sizeof(pthread_t) * num_threads);
+double *partial_sums = malloc(sizeof(double) * num_threads);
+
+for (int i = 0; i < num_threads; i++)
+{
+    thread_arg_t *arg = malloc(sizeof(thread_arg_t));
+    arg->thread_id = i;
+    arg->partial_sums = partial_sums;
+    pthread_create(&workers[i], NULL, thread_func, arg); 
+}
+\end{cppcode}
+
+Each thread executes a function, \lstinline{thread_func}, that computes its partial sum and stores it in the allocated array.
+
+\begin{cppcode}{q3.c - Thread computation of array partial sum}
+void *thread_func(void *arg) { 
+    thread_arg_t *data = (thread_arg_t *)arg;
+    int my_id = data->thread_id;
+    double *partial_sums = data->partial_sums;
+    free(arg);
+
+    int chunk_size = ARR_SIZE / num_threads;
+    int start = my_id * chunk_size;
+    int end = (my_id == num_threads - 1) ? ARR_SIZE : start + chunk_size;
+
+    double thread_sum = 0.0;
+    for (int i = start; i < end; i++)
+        thread_sum += arr[i];
+
+    partial_sums[my_id] = thread_sum;
+
+    printf("Thread %d sum = %f\n", my_id, thread_sum);
+    pthread_exit(0);
+}
+\end{cppcode}
+
+Once all threads have finished, the main thread sums the partial sums from the threads:
+
+\begin{cppcode}{q3.c - Final sum from thread partial sums}
+double sum_parallel = 0.0;
+for (int i = 0; i < num_threads; i++)
+{
+    sum_parallel += partial_sums[i];
+}
+\end{cppcode}
+
+By storing each threads partial sum in the array, we don't need to use mutex locks for access to a global variable. Example output from the application is shown below:
+
+\begin{textcode}{> ./q3 8}
+--- Master Sum ---
+Serial sum:   500131.289269,    Serial time: 2197 us
+
+--- Threads ---
+Thread 0 sum = 62493.302477
+Thread 1 sum = 62537.609934
+Thread 3 sum = 62536.972809
+Thread 2 sum = 62594.181343
+Thread 4 sum = 62512.408019
+Thread 5 sum = 62783.233108
+Thread 6 sum = 62187.400245
+Thread 7 sum = 62486.181335
+
+--- Thread Sum ---
+Parallel Sum: 500131.289269,    Parallel time: 1065 us
+\end{textcode}
+
+To measure the performance of the approach and how it scales with the number of threads, a Python script was created that run the application 100 times for $\text{num\_threads} \in [1, 16]$. The result is shown in \cref{fig:q3_exe}. We see that compared to the simple, serial approach this is some overhead in the creation of threads, as $\text{num\_threads} = 1$ is slightly slower than the baseline. However, as the number of threads is increased we see a performance increase until $\text{num\_threads} > 8$, whereafter the overhead of thread creation diminishes performance. On our system the optimal number of threads is therefore $\text{num\_threads} = 8$.
+
+\newpage
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{assets/q3_execution_times.png}
+    \caption{Execution times of array sum program with increased parallelization.}
+    \label{fig:q3_exe}
+\end{figure}
+
+\end{document}
