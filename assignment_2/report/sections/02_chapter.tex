@@ -262,4 +262,24 @@ Just like in Question 3, to measure the performance and how it scales with the n
     \label{fig:q4_exe}
 \end{figure}
 
+\newpage
+
+\section{Question 5}
+
+Compare and swap (CAS) instructions leverages hardware atomics on today's computers and can be used to design lock-free data structures. Write a C program to implement Stack as a linked list of Nodes and each thread can perform \lstinline{push()} and \lstinline{pop()} on it.
+
+\begin{itemize}
+    \item Each thread performs two functions, \lstinline{push()} for adding a node to the linked list of nodes, and \lstinline{pop()} for removing the top node from the linked list. The code should print out the number of nodes remaining in Stack.
+    \item In \lstinline{pop()} and \lstinline{push()}, add the implementation based on mutex lock to update top.
+    \item Briefly describe the global data structures in your code and how are access synchronized on them.
+    \item Run your program with 1, 2, 4, 8, 16, 32 threads.
+    \item In \lstinline{pop()} and \lstinline{push()}, add the implementation based on compare-and-swap (CAS) operations to update top.
+    \item Briefly describe the global data structures in your code and how are access synchronized on them.
+    \item Run your program with 1, 2, 4, 8, 16, 32 threads.
+\end{itemize}
+
+\subsection*{Solution}
+
+
+
 \end{document}

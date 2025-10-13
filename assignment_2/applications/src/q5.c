@@ -1,101 +1,215 @@
-#include <pthread.h> 
+#include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
-    
-int num_threads = 0;
-    
-typedef struct node { 
-    int node_id;      //a unique ID assigned to each node
-    struct node *next;
+
+int global_node_id = 0;
+
+// Struct to represent the linked list
+typedef struct node {
+    int node_id;        // Data field of node, will be an ID in this case
+    struct node *next;  // Pointer to the next node
 } Node;
 
-Node *top; // top of stack
+// Top of stack
+Node *top;
 
-/*Option 1: Mutex Lock*/
-void push_mutex() { 
-    Node *old_node;
+// Mutex for thread synchronization
+pthread_mutex_t stack_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+// Pushes an item on stack using the mutex approach
+void push_mutex() {
     Node *new_node;
-    new_node = malloc(sizeof(Node)); 
+    new_node = malloc(sizeof(Node));
 
-    //update top of the stack below
-    //assign a unique ID to the new node
+    // Lock the stack
+    pthread_mutex_lock(&stack_mutex);
+
+    // Get data (ID) for node by incrementing global ID counter
+    new_node->node_id = global_node_id++;
+
+    // Update top of the stack
+    new_node->next = top;
+    top = new_node;
+
+    // Unlock the stack
+    pthread_mutex_unlock(&stack_mutex);
 }
 
-int pop_mutex() { 
+// Pops an item from the stack using the mutex approach
+int pop_mutex() {
     Node *old_node;
-    Node *new_node;
+    int node_id = -1;
 
-    //update top of the stack below
+    // Lock the stack
+    pthread_mutex_lock(&stack_mutex);
 
-    return old_node->node_id;
+    // Check if stack is not empty
+    if (top != NULL) {
+        old_node = top;
+        node_id = old_node->node_id;
+        top = top->next;
+        free(old_node);
+    }
+
+    // Unlock the stack
+    pthread_mutex_unlock(&stack_mutex);
+
+    // Return the node data (ID)
+    return node_id;
 }
 
 /*Option 2: Compare-and-Swap (CAS)*/
-void push_cas() { 
-    Node *old_node;
+void push_cas() {
     Node *new_node;
-    new_node = malloc(sizeof(Node)); 
+    Node *old_top;
 
-    //update top of the stack below
-    //assign a unique ID to the new node
+    new_node = malloc(sizeof(Node));
+
+    do {
+        old_top = top;
+        new_node->node_id = __sync_fetch_and_add(&global_node_id, 1);
+        new_node->next = old_top;
+    } while (!__sync_bool_compare_and_swap(&top, old_top, new_node));
 }
 
-int pop_cas() { 
-    Node *old_node;
-    Node *new_node;
+int pop_cas() {
+    Node *old_top;
+    Node *new_top;
+    int node_id = -1;
 
-    //update top of the stack below
+    do {
+        old_top = top;
+        if (old_top == NULL)
+        {
+            return -1;
+        }
+        new_top = old_top->next;
+        node_id = old_top->node_id;
+    } while (!__sync_bool_compare_and_swap(&top, old_top, new_top));
 
-    return old_node->node_id;
+    free(old_top);
+    return node_id;
 }
 
-/* the thread function */
-void *thread_func(int opt) { 
-    /* Assign each thread an id so that they are unique in range [0, num_thread -1 ] */
-    int my_id;
+// Thread argument structure
+typedef struct {
+    int thread_id;
+    int option;     // 0: Mutex, 1: CAS
+} ThreadData;
 
-    if( opt==0 ){
-        push_mutex();push_mutex();pop_mutex();pop_mutex();push_mutex();
-    }else{
-        push_cas();push_cas();pop_cas();pop_cas();push_cas();
+// Thread function
+void *thread_func(void *arg) {
+    ThreadData *data = (ThreadData *)arg;
+    int my_id = data->thread_id;
+    int opt = data->option;
+
+    if (opt == 0)
+    {
+        push_mutex();
+        push_mutex();
+        pop_mutex();
+        pop_mutex();
+        push_mutex();
     }
-    
+    else
+    {
+        push_cas();
+        push_cas();
+        pop_cas();
+        pop_cas();
+        push_cas();
+    }
+
     printf("Thread %d: exit\n", my_id);
     pthread_exit(0);
 }
 
+void print_remaining_nodes() {
+    Node *current = top;
+    int count = 0;
+    printf("Remaining nodes: ");
+    while (current != NULL) {
+        printf("%d ", current->node_id);
+        current = current->next;
+        count++;
+    }
+    printf("(Total: %d nodes)\n", count);
+}
+
+void free_remaining_nodes() {
+    Node *current = top;
+    while (current != NULL) {
+        Node *temp = current;
+        current = current->next;
+        free(temp);
+    }
+    top = NULL;
+}
+
 int main(int argc, char *argv[])
 {
-    num_threads = atoi(argv[1]);
-
-    /* Option 1: Mutex */ 
-    pthread_t *workers;
-    for (int i = 0; i < num_threads; i++) { 
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_create(...); 
+    if (argc != 2)
+    {
+        return 1;
     }
-    for (int i = 0; i < num_threads; i++) 
-        pthread_join(...);
 
-    //Print out all remaining nodes in Stack
-    printf("Mutex: Remaining nodes \n");
+    int num_threads = atoi(argv[1]);
 
-    /*free up resources properly */
+    /* === Mutex === */
+    printf("\n=== Stack Using Mutex Approach ===\n");
+    top = NULL;
+    global_node_id = 0;
 
-    /* Option 2: CAS */ 
-        for (int i = 0; i < num_threads; i++) { 
-        pthread_attr_t attr;
-        pthread_attr_init(&attr);
-        pthread_create(...); 
+    pthread_t *workers = malloc(num_threads * sizeof(pthread_t));
+    ThreadData *thread_data = malloc(num_threads * sizeof(ThreadData));
+
+    for (int i = 0; i < num_threads; i++)
+    {
+        thread_data[i].thread_id = i;
+        thread_data[i].option = 0;
+        pthread_create(&workers[i], NULL, thread_func, &thread_data[i]);
     }
-    for (int i = 0; i < num_threads; i++) 
-        pthread_join(...);
 
-    //Print out all remaining nodes in Stack
-    printf("CAS: Remaining nodes \n");
-    
-    /*free up resources properly */
+    // Wait for threads to finish
+    for (int i = 0; i < num_threads; i++)
+    {
+        pthread_join(workers[i], NULL);
+    }
 
+    // Print remaining nodes in Stack
+    printf("Mutex: ");
+    print_remaining_nodes();
+
+    // Cleanup
+    free_remaining_nodes();
+
+    /* === CAS === */
+    printf("\n=== Stack Using CAS Approach ===\n");
+    top = NULL;
+    global_node_id = 0;
+
+    for (int i = 0; i < num_threads; i++)
+    {
+        thread_data[i].thread_id = i;
+        thread_data[i].option = 1;
+        pthread_create(&workers[i], NULL, thread_func, &thread_data[i]);
+    }
+
+    // Wait for threads to finish
+    for (int i = 0; i < num_threads; i++)
+    {
+        pthread_join(workers[i], NULL);
+    }
+
+    // Print remaining nodes in Stack
+    printf("CAS: ");
+    print_remaining_nodes();
+
+    // Cleanup
+    free_remaining_nodes();
+    free(workers);
+    free(thread_data);
+
+    return 0;
 }
