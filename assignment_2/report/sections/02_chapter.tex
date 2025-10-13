@@ -127,4 +127,139 @@ To measure the performance of the approach and how it scales with the number of 
     \label{fig:q3_exe}
 \end{figure}
 
+\newpage
+
+\section{Question 4}
+
+Write a C program to create a group of threads to parallelize building the histogram of an array. You should use 30 bins for the histogram. You can reuse code from Question 3.
+
+\begin{enumerate}
+    \item Modify the code so that it creates an array of doubles, the array length is given by \lstinline{argv[2]}. The array should be initialized with random values in the range $[0.0, 1.0]$.
+    \item Serial histogram: add code to create the histogram of the array. Print out the histogram and time.
+    \item Parallel histogram: Modify the thread function so that each thread builds the histogram of a portion of the array, and a final histogram is aggregated from all threads' result. Print out the histogram and time.
+    \item Briefly describe your design of shared data structures and synchronization.
+    \item Run your code: \lstinline{./program 3 10000}, \lstinline{./program 3 100000}, \lstinline{./program 3 1000000}. Include screenshots of your output here.
+    \item Plots that visualize the output histogram. Analyze your results.
+\end{enumerate}
+
+\subsection*{Solution}
+
+To parallelize the histogram binning of the array, we first generate the array and compute the serial histogram:
+
+\begin{cppcode}{q4.c - Initialization and serial histogram computation}
+arr = malloc(sizeof(double) * arr_size);
+srand(time(NULL));
+for (int i = 0; i < arr_size; i++)
+{
+    arr[i] = (double)rand() / (double)(RAND_MAX);
+}
+
+int hist_serial[NUM_BINS] = {0};
+for (int i = 0; i < arr_size; i++)
+{
+    int bin = (int)(arr[i] * NUM_BINS);
+    if (bin == NUM_BINS) bin = NUM_BINS - 1;
+    hist_serial[bin]++;
+}
+\end{cppcode}
+
+For parallelization, the array is split into chunks with each thread computing a partial histogram for its assignment part. To pass thread specific information, a struct is again used:
+
+\begin{cppcode}{q4.c - Struct for thread arguments}
+typedef struct{
+    int thread_id;
+    int (*partial_histogram)[NUM_BINS];
+} thread_arg_t;
+\end{cppcode}
+
+\begin{itemize}
+    \item \textbf{thread\_id}: Thread identifier. Used to compute it's corresponding chunk of the array.
+    \item \textbf{partial\_histograms}: Pointer to an array of partial histograms (one per thread).
+\end{itemize}
+
+\vspace{-10pt}
+Threads are created as follows:
+
+\begin{cppcode}{q4.c - Creation of threads}
+pthread_t *workers = malloc(sizeof(pthread_t) * num_threads);
+int (*partial_histograms)[NUM_BINS] = calloc(num_threads, sizeof(*partial_histograms));
+
+for (int i = 0; i < num_threads; i++)
+{
+    thread_arg_t *arg = malloc(sizeof(thread_arg_t));
+    arg->thread_id = i;
+    arg->partial_histogram = partial_histograms;
+    pthread_create(&workers[i], NULL, thread_func, arg);
+}
+\end{cppcode}
+
+Each thread executes a function, \lstinline{thread_func}, that computes its partial histogram and stores it in the allocated array:
+
+\begin{cppcode}{q4.c - Thread computation of array partial histogram}
+void *thread_func(void *arg)
+{
+    thread_arg_t *data = (thread_arg_t *)arg;
+    int tid = data->thread_id;
+    int (*partial_histograms)[NUM_BINS] = data->partial_histogram;
+    free(arg);
+
+    int chunk_size = arr_size / num_threads;
+    int start = tid * chunk_size;
+    int end = (tid == num_threads - 1) ? arr_size : start + chunk_size;
+
+    for (int i = start; i < end; i++) {
+        int bin = (int)(arr[i] * NUM_BINS);
+        if (bin == NUM_BINS) bin = NUM_BINS - 1;
+        partial_histograms[tid][bin]++;
+    }
+    pthread_exit(NULL);
+}
+\end{cppcode}
+
+Once all threads have finished, the main thread adds the partial histograms to form the total histogram:
+
+\begin{cppcode}{q4.c - Final histogram from partial histograms}
+int hist_parallel[NUM_BINS] = {0};
+for (int t = 0; t < num_threads; t++)
+{
+    for (int b = 0; b < NUM_BINS; b++)
+    {
+        hist_parallel[b] += partial_histograms[t][b];
+    }
+}
+\end{cppcode}
+
+Just like before, by storing each threads partial histogram in a dedicated array, we don't need mutex locks for access to e.g. a global array. Example output from the application is shown below:
+
+\begin{textcode}{> ./q4 3 10000}
+--- Serial Histogram ---
+Bin  0: 318   Bin  1: 329   Bin  2: 378   Bin  3: 316   Bin  4: 340       
+Bin  5: 317   Bin  6: 317   Bin  7: 354   Bin  8: 322   Bin  9: 350       
+Bin 10: 363   Bin 11: 329   Bin 12: 314   Bin 13: 315   Bin 14: 276       
+Bin 15: 360   Bin 16: 304   Bin 17: 328   Bin 18: 347   Bin 19: 352       
+Bin 20: 343   Bin 21: 334   Bin 22: 333   Bin 23: 294   Bin 24: 342       
+Bin 25: 363   Bin 26: 338   Bin 27: 366   Bin 28: 343   Bin 29: 315       
+Serial time: 8 us
+
+--- Parallel Histogram ---
+Bin  0: 318   Bin  1: 329   Bin  2: 378   Bin  3: 316   Bin  4: 340       
+Bin  5: 317   Bin  6: 317   Bin  7: 354   Bin  8: 322   Bin  9: 350       
+Bin 10: 363   Bin 11: 329   Bin 12: 314   Bin 13: 315   Bin 14: 276       
+Bin 15: 360   Bin 16: 304   Bin 17: 328   Bin 18: 347   Bin 19: 352       
+Bin 20: 343   Bin 21: 334   Bin 22: 333   Bin 23: 294   Bin 24: 342       
+Bin 25: 363   Bin 26: 338   Bin 27: 366   Bin 28: 343   Bin 29: 315       
+Parallel time: 314 us
+\end{textcode}
+
+Just like in Question 3, to measure the performance and how it scales with the number of threads, a Python script was used to run each configuration of the application 100 times for $\text{num\_threads} \in [1, 16]$. The results are shown in \cref{fig:q4_exe}. Unfortunately, we don't see a nice improvement from multithreading this application. For all values of $N$ (array size), the serial approach is faster. The cause is most likely that the act of creating the histogram is computationally easy, so the thread overhead always overshadows the gain from parallelization. The high standard deviations however could also point to some randomness from thread creation, or perhaps due to cache misses from bad access to the partial histogram arrays. 
+
+\newpage
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\linewidth]{assets/q4_execution_times.png}
+    \caption{Execution times of array histogram program with increased parallelization.}
+    \label{fig:q4_exe}
+\end{figure}
+
 \end{document}

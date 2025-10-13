@@ -4,7 +4,7 @@ SRCDIR = src
 OBJDIR = obj
 BUILDDIR = build
 
-TARGETS = q3
+TARGETS = q3 q4
 
 OBJFILES = $(addprefix $(OBJDIR)/, $(addsuffix .o, $(TARGETS)))
 BINARIES = $(addprefix $(BUILDDIR)/, $(TARGETS))
