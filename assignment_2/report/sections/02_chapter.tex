@@ -273,13 +273,206 @@ Compare and swap (CAS) instructions leverages hardware atomics on today's comput
     \item In \lstinline{pop()} and \lstinline{push()}, add the implementation based on mutex lock to update top.
     \item Briefly describe the global data structures in your code and how are access synchronized on them.
     \item Run your program with 1, 2, 4, 8, 16, 32 threads.
-    \item In \lstinline{pop()} and \lstinline{push()}, add the implementation based on compare-and-swap (CAS) operations to update top.
+    \item In \lstinline{pop()} and \lstinline|push()|, add the implementation based on compare-and-swap (CAS) operations to update top.
     \item Briefly describe the global data structures in your code and how are access synchronized on them.
     \item Run your program with 1, 2, 4, 8, 16, 32 threads.
 \end{itemize}
 
 \subsection*{Solution}
 
+We define a simple node struct for the linked-list, along with a global pointer, \texttt{top} which always points to the head of the stack. A global counter, \texttt{global\_node\_id} is used to generate unique IDs for each node pushed by the threads.
 
+\begin{cppcode}{q5.c - Node structure and global variables}
+typedef struct node {
+    int node_id;        // Unique ID for node
+    struct node *next;  // Pointer to next node in stack
+} Node;
+
+Node *top = NULL;       // Top of the stack
+int global_node_id = 0; // Global counter for node IDs
+\end{cppcode}
+
+\subsection*{Mutex Approach}
+
+In this approach, access to update top of the shared stack is synchronized using a mutex lock. The \texttt{push\_mutex()} function creates a new node, locks the mutex, and then inserts the node at the top of the stack. Afterwards the lock is released. Similarly we have \texttt{pop\_mutex()} which removes and frees the top node while ensuring synchronized access by use of a mutex lock.
+
+\begin{cppcode}{q5.c - Stack operations using mutex lock}
+void push_mutex() {
+    Node *new_node;
+    new_node = malloc(sizeof(Node));
+
+    pthread_mutex_lock(&stack_mutex);
+    new_node->node_id = global_node_id++;
+    new_node->next = top;
+    top = new_node;
+    pthread_mutex_unlock(&stack_mutex);
+}
+
+int pop_mutex() {
+    Node *old_node;
+    int node_id = -1;
+
+    pthread_mutex_lock(&stack_mutex);
+    if (top != NULL) {
+        old_node = top;
+        node_id = old_node->node_id;
+        top = top->next;
+        free(old_node);
+    }
+    pthread_mutex_unlock(&stack_mutex);
+    return node_id;
+}
+\end{cppcode}
+
+\subsection*{CAS Approach}
+
+In this approach we use atomic \textit{Compare-and-Swap} operations. There are two ways we could have approached this in code, either we utilize the \texttt{stdatomic.h} library and define atomic variables and utilize their methods, or we directy use the GCC \texttt{\_\_sync} intrinsics directly. We chose the latter due to it being slightly clearer what's going on in this particular case. The two intrinsic functions we utilize are \cite{gcc_sync_builtins}:
+
+\begin{itemize}
+    \item \texttt{\_\_sync\_fetch\_and\_add(type *ptr, type value)}: Atomically fetches and adds a value to a variable.
+    \item \texttt{\_\_sync\_bool\_compare\_and\_swap(type *ptr, type oldval, type newval)}: Perform an atomic compare and swap. If the current value of \texttt{*ptr} is \texttt{oldval}, then write \texttt{newval} into \texttt{*ptr}. The bool versions returns true if the comparison is successful.
+\end{itemize}
+
+Utilizing the above CAS functions, the top pointer can updated by the threads without the need of acquiring a lock first. This allows multiple threads to operate concurrently without interfering with each other. In other words, the CAS functions ensures atomicity of the update of top. If another thread updates \texttt{top} between reading and writing, the CAS fails and the operation is simply retried.
+
+\begin{cppcode}{q5.c - Stack operations using compare-and-swap (CAS)}
+void push_cas() {
+    Node *new_node;
+    Node *old_top;
+    new_node = malloc(sizeof(Node));
+
+    do {
+        old_top = top;
+        new_node->node_id = __sync_fetch_and_add(&global_node_id, 1);
+        new_node->next = old_top;
+    } while (!__sync_bool_compare_and_swap(&top, old_top, new_node));
+}
+
+int pop_cas() {
+    Node *old_top;
+    Node *new_top;
+    int node_id = -1;
+
+    do {
+        old_top = top;
+        if (old_top == NULL)
+        {
+            return -1;
+        }
+        new_top = old_top->next;
+        node_id = old_top->node_id;
+    } while (!__sync_bool_compare_and_swap(&top, old_top, new_top));
+
+    free(old_top);
+    return node_id;
+}
+\end{cppcode}
+
+\subsection*{Thread Creation}
+
+Like in the previous questions we define a struct for passing arguments to each thread. In this case we pass a Thread ID and an \texttt{option} integer that defines whether the thread will operate on the stack using the Mutex or CAS approach:
+
+\begin{cppcode}{q5.c Thread argument struct}
+typedef struct {
+    int thread_id;
+    int option;     // 0: Mutex, 1: CAS
+} thread_arg_t;
+\end{cppcode}
+
+Threads are created in exactly the same way as in the previous questions. Each thread performs the same pattern of stack operations (two pushed, two pops, and one push):
+
+\begin{cppcode}{q5.c - Thread function}
+void *thread_func(void *arg) {
+    thread_arg_t *data = (thread_arg_t *)arg;
+    int tid = data->thread_id;
+    int opt = data->option;
+
+    if (opt == 0)
+    {
+        push_mutex();
+        push_mutex();
+        pop_mutex();
+        pop_mutex();
+        push_mutex();
+    }
+    else
+    {
+        push_cas();
+        push_cas();
+        pop_cas();
+        pop_cas();
+        push_cas();
+    }
+
+    printf("Thread %d: exit\n", tid);
+    pthread_exit(0);
+}
+\end{cppcode}
+
+After all threads are completed, the main thread prints the remaining nodes in the stack:
+
+\begin{cppcode}{q5.c - Printing of remaining nodes}
+void print_remaining_nodes() {
+    Node *current = top;
+    int count = 0;
+    printf("Remaining nodes: ");
+    while (current != NULL) {
+        printf("%d ", current->node_id);
+        current = current->next;
+        count++;
+    }
+    printf("(Total: %d)\n", count);
+}
+\end{cppcode}
+
+The output from running the application with 1, 2, 4, 8, 16, and 32 threads are shown below (for this we disabled the thread exit message). In all cases we see the exact same behavior from the mutex and CAS implementation.
+
+\begin{textcode}{> ./q5.c 1}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 2 (Total: 1)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 2 (Total: 1)
+\end{textcode}
+
+\begin{textcode}{> ./q5.c 2}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 5 2 (Total: 2)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 5 2 (Total: 2)
+\end{textcode}
+
+\begin{textcode}{> ./q5.c 4}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 11 8 5 2 (Total: 4)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 11 8 5 2 (Total: 4)
+\end{textcode}
+
+\begin{textcode}{> ./q5.c 8}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 23 20 17 14 11 8 5 2 (Total: 8)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 23 20 17 14 11 8 5 2 (Total: 8)
+\end{textcode}
+
+\begin{textcode}{> ./q5.c 16}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 47 44 41 38 35 32 29 26 23 20 17 14 11 8 5 2 (Total: 16)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 47 44 41 38 35 32 29 26 23 20 17 14 11 8 5 2 (Total: 16)
+\end{textcode}
+
+\begin{textcode}{> ./q5.c 32}
+=== Stack Using Mutex Approach ===
+Mutex: Remaining nodes: 95 92 89 86 83 80 77 74 71 68 65 62 59 56 53 50 47 44 41 38 35 32 29 26 23 20 17 14 11 8 5 2 (Total: 32)
+
+=== Stack Using CAS Approach ===
+CAS: Remaining nodes: 95 92 89 86 83 80 77 74 71 68 65 62 59 56 53 50 47 44 41 38 35 32 29 26 23 20 17 14 11 8 5 2 (Total: 32)
+\end{textcode}
 
 \end{document}

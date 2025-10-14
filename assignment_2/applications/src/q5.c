@@ -3,16 +3,16 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-int global_node_id = 0;
-
 // Struct to represent the linked list
 typedef struct node {
-    int node_id;        // Data field of node, will be an ID in this case
+    int node_id;        // Node ID
     struct node *next;  // Pointer to the next node
 } Node;
 
 // Top of stack
 Node *top;
+
+int global_node_id = 0;
 
 // Mutex for thread synchronization
 pthread_mutex_t stack_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -59,7 +59,7 @@ int pop_mutex() {
     return node_id;
 }
 
-/*Option 2: Compare-and-Swap (CAS)*/
+// Pushes an item on the stack using the CAS approach
 void push_cas() {
     Node *new_node;
     Node *old_top;
@@ -73,6 +73,7 @@ void push_cas() {
     } while (!__sync_bool_compare_and_swap(&top, old_top, new_node));
 }
 
+// Pops an item from the stack using the CAS approach
 int pop_cas() {
     Node *old_top;
     Node *new_top;
@@ -96,12 +97,12 @@ int pop_cas() {
 typedef struct {
     int thread_id;
     int option;     // 0: Mutex, 1: CAS
-} ThreadData;
+} thread_arg_t;
 
 // Thread function
 void *thread_func(void *arg) {
-    ThreadData *data = (ThreadData *)arg;
-    int my_id = data->thread_id;
+    thread_arg_t *data = (thread_arg_t *)arg;
+    int tid = data->thread_id;
     int opt = data->option;
 
     if (opt == 0)
@@ -121,7 +122,7 @@ void *thread_func(void *arg) {
         push_cas();
     }
 
-    printf("Thread %d: exit\n", my_id);
+    // printf("Thread %d: exit\n", tid);
     pthread_exit(0);
 }
 
@@ -134,7 +135,7 @@ void print_remaining_nodes() {
         current = current->next;
         count++;
     }
-    printf("(Total: %d nodes)\n", count);
+    printf("(Total: %d)\n", count);
 }
 
 void free_remaining_nodes() {
@@ -162,7 +163,7 @@ int main(int argc, char *argv[])
     global_node_id = 0;
 
     pthread_t *workers = malloc(num_threads * sizeof(pthread_t));
-    ThreadData *thread_data = malloc(num_threads * sizeof(ThreadData));
+    thread_arg_t *thread_data = malloc(num_threads * sizeof(thread_arg_t));
 
     for (int i = 0; i < num_threads; i++)
     {

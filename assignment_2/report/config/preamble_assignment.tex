@@ -66,6 +66,17 @@
 \usepackage{microtype}
 \DisableLigatures[<,>]{encoding=T1,family=tt*}
 
+\makeatletter
+\lstdefinestyle{mystyle}{
+  basicstyle=%
+    \ttfamily
+    \color{black}%
+    \lst@ifdisplaystyle\footnotesize\fi
+}
+\makeatother
+
+\lstset{style=mystyle}
+
 %----------------------------------------------------------------------------------------
 %   BIBLIOGRAPHY
 %----------------------------------------------------------------------------------------
