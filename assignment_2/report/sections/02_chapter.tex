@@ -2,6 +2,168 @@
 
 \begin{document}
 
+\section{Question 1}
+
+Consider the following set of processes, with the length of the CPU burst given in milliseconds.  
+A smaller priority number implies a higher priority.
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|c|c|}
+\hline
+\textbf{Process} & \textbf{Arrival Time} & \textbf{Burst Time} & \textbf{Priority} \\
+\hline
+P1 & 0 & 10 & 4 \\
+P2 & 1 & 3 & 3 \\
+P3 & 2 & 5 & 2 \\
+P4 & 6 & 1 & 0 \\
+\hline
+\end{tabular}
+\end{table}
+
+For each of the following scheduling algorithms FCFS, preemptive SRTF, non-premeptive priority scheduling, and Round-Robin (quantum = 4):
+
+\begin{enumerate}[label=\alph*)]
+    \item Draw the Gantt chart to illustrate the execution of these schedules.
+    \item Compute the \textbf{turnaround time} of each process for each scheduling algorithm.
+    \item Compute the \textbf{waiting time} of each process for each scheduling algorithm.
+    \item Determine which algorithm results in the \textbf{minimum average waiting time}.
+\end{enumerate}
+
+\subsection*{Solution}
+
+\subsection*{Gantt Charts}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[xscale=0.8]
+        \draw[fill=blue!30] (0,0) rectangle (10,1) node[midway] {P1};
+        \draw[fill=blue!30] (10,0) rectangle (13,1) node[midway] {P2};
+        \draw[fill=blue!30] (13,0) rectangle (18,1) node[midway] {P3};
+        \draw[fill=blue!30] (18,0) rectangle (19,1) node[midway] {P4};
+
+        \foreach \x in {0,10,13,18,19} {
+            \draw (\x,0) -- (\x,-0.2) node[below] {\x};
+        }
+    \end{tikzpicture}
+    \caption{First Come First Served (FCFS)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[xscale=0.8]
+        \draw[fill=blue!30] (0,0) rectangle (10,1) node[midway] {P1};
+        \draw[fill=blue!30] (11,0) rectangle (14,1) node[midway] {P2};
+        \draw[fill=blue!30] (14,0) rectangle (19,1) node[midway] {P3};
+        \draw[fill=blue!30] (10,0) rectangle (11,1) node[midway] {P4};
+
+        \foreach \x in {0,10,11,14,19} {
+            \draw (\x,0) -- (\x,-0.2) node[below] {\x};
+        }
+    \end{tikzpicture}
+    \caption{Shortest Job first (SJF)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[xscale=0.8]
+        \draw[fill=blue!30] (0,0) rectangle (1,1) node[midway] {P1};
+        \draw[fill=blue!30] (1,0) rectangle (4,1) node[midway] {P2};
+        \draw[fill=blue!30] (4,0) rectangle (6,1) node[midway] {P3};
+        \draw[fill=blue!30] (6,0) rectangle (7,1) node[midway] {P4};
+        \draw[fill=blue!30] (7,0) rectangle (10,1) node[midway] {P3};
+        \draw[fill=blue!30] (10,0) rectangle (19,1) node[midway] {P1};
+
+        \foreach \x in {0,1,4,6,7,10,19} {
+            \draw (\x,0) -- (\x,-0.2) node[below] {\x};
+        }
+    \end{tikzpicture}
+    \caption{Preemptive Shortest Remaining Time First (SRTF)}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[xscale=0.8]
+        \draw[fill=blue!30] (0,0) rectangle (10,1) node[midway] {P1};
+        \draw[fill=blue!30] (16,0) rectangle (19,1) node[midway] {P2};
+        \draw[fill=blue!30] (11,0) rectangle (16,1) node[midway] {P3};
+        \draw[fill=blue!30] (10,0) rectangle (11,1) node[midway] {P4};
+
+        \foreach \x in {0,10,11,16,19} {
+            \draw (\x,0) -- (\x,-0.2) node[below] {\x};
+        }
+    \end{tikzpicture}
+    \caption{Non-preemptive Priority Scheduling}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[xscale=0.8]
+        \draw[fill=blue!30] (0,0) rectangle (4,1) node[midway] {P1};
+        \draw[fill=blue!30] (4,0) rectangle (7,1) node[midway] {P2};
+        \draw[fill=blue!30] (7,0) rectangle (11,1) node[midway] {P3};
+        \draw[fill=blue!30] (11,0) rectangle (12,1) node[midway] {P4};
+        \draw[fill=blue!30] (12,0) rectangle (16,1) node[midway] {P1};
+        \draw[fill=blue!30] (16,0) rectangle (17,1) node[midway] {P3};
+        \draw[fill=blue!30] (17,0) rectangle (19,1) node[midway] {P1};
+
+        \foreach \x in {0,4,7,11,12,16,17,19} {
+            \draw (\x,0) -- (\x,-0.2) node[below] {\x};
+        }
+    \end{tikzpicture}
+    \caption{Round Robin (quantum = 4)}
+\end{figure}
+
+\subsection*{Turnaround Times}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|c|c|c|c|}
+        \hline
+        \textbf{Algorithm} & \textbf{P1} & \textbf{P2} & \textbf{P3} & \textbf{P4} \\
+        \hline
+        FCFS & 10 & 3 & 5 & 1 \\
+        SJF & 10 & 3 & 5 & 1 \\
+        Preemptive SRTF & 19 & 3 & 6 & 1 \\
+        Non-preemptive Priority & 10 & 3 & 5 & 1 \\
+        Round-Robin (Q=4) & 19 & 3 & 10 & 1 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection*{Waiting Times}
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|l|c|c|c|c|}
+        \hline
+        \textbf{Algorithm} & \textbf{P1} & \textbf{P2} & \textbf{P3} & \textbf{P4} \\
+        \hline
+        FCFS & 0 & 9 & 11 & 12 \\
+        SJF & 0 & 13 & 12 & 4 \\
+        Preemptive SRTF & 0 & 0 & 2 & 0 \\
+        Non-preemptive Priority & 0 & 9 & 9 & 10 \\
+        Round-Robin (Q=4) & 0 & 3 & 5 & 5 \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection*{Minimum Average Waiting Times}
+
+The average waiting times of the algorithms are:
+
+\begin{itemize}
+    \item FCFS: $\frac{0+9+11+12}{4} = 8$
+    \item SJF: $\frac{0+13+12+4}{4} = 7.25$
+    \item Preemptive SRTF: $\frac{0+0+2+0}{4} = 0.5$
+    \item Non-preemptive Priority: $\frac{0+9+9+10}{4} = 5.25$
+    \item Round-Robin: $\frac{0+3+5+5}{4} = 3.25$
+\end{itemize}
+
+Thus, \textbf{Preemptive SRTF} has the minimum average waiting time.
+
+\newpage
+
 \section{Question 3}
 
 Write a C program to use a group of threads to parallelize the sum of an array.
