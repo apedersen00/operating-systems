@@ -199,7 +199,7 @@ An example would be: Consider a system where there are “quick” processes and
 
 \newpage
 
-\section{Question 3}
+\section{Question 3 - Thread creation, termination, and synchronization}
 
 Write a C program to use a group of threads to parallelize the sum of an array.
 
@@ -326,7 +326,7 @@ To measure the performance of the approach and how it scales with the number of 
 
 \newpage
 
-\section{Question 4}
+\section{Question 4 - Multi-threaded Histogram}
 
 Write a C program to create a group of threads to parallelize building the histogram of an array. You should use 30 bins for the histogram. You can reuse code from Question 3.
 
@@ -461,7 +461,7 @@ Just like in Question 3, to measure the performance and how it scales with the n
 
 \newpage
 
-\section{Question 5}
+\section{Question 5 - Lock-free Synchronization}
 
 Compare and swap (CAS) instructions leverages hardware atomics on today's computers and can be used to design lock-free data structures. Write a C program to implement Stack as a linked list of Nodes and each thread can perform \lstinline{push()} and \lstinline{pop()} on it.
 
@@ -671,5 +671,277 @@ Mutex: Remaining nodes: 95 92 89 86 83 80 77 74 71 68 65 62 59 56 53 50 47 44 41
 === Stack Using CAS Approach ===
 CAS: Remaining nodes: 95 92 89 86 83 80 77 74 71 68 65 62 59 56 53 50 47 44 41 38 35 32 29 26 23 20 17 14 11 8 5 2 (Total: 32)
 \end{textcode}
+
+\newpage
+
+\section{Question 6 - Resource-Allocation Graph}
+
+Recall that a resource-allocation graph without cycles has no deadlock, and a resource-allocation graph with cycles may or may not have deadlocks. In the following resource-allocation graphs:
+
+\begin{center}
+    \includegraphics[width=0.8\textwidth]{assets/q6.png}
+\end{center}
+
+\begin{enumerate}[label=\alph*)]
+    \item Please describe thread states in each graph. For example, thread T0 is requesting an instance of resource R0, thread T1 is holding an instance of resource R1.
+
+    \item Which graph(s) have no deadlocks? Please illustrate the order in which the threads may complete execution. For example, thread T0 releases an instance of resource R0, and then an instance of resource R0 is allocated to thread T1.
+
+    \item Which graph may have deadlocks? Recall that a cycle in the resource-allocation graph does not necessarily mean deadlock. For those situations that are deadlocked, provide the cycle of threads and resources. For example, \{T0->R0->T1->R1->T0\}.
+\end{enumerate}
+
+\subsection*{Solution}
+
+\subsection*{a)}
+
+In Figure A, T1 has been allocated 1 instance of R1 and requests 1 instance of R2, T2 has been allocated 1 instance of R2, and T3 requests 1 instance of R2.  
+In Figure B, T1 requests R1 and has been allocated 1 instance of R2, T2 requests 1 instance of R3 and has been allocated 1 instance of R2 and R1, and T3 has been allocated 1 instance of R3.  
+In Figure C, T1 requests 1 instance of R2 and has been allocated 1 instance of R1, T2 requests 1 instance of R2 and has been allocated 1 instance of R3, T3 requests 1 instance of R1 and has been allocated 1 instance of R2, T4 has been allocated with both 1 instance of R2 and 1 instance of R3.
+
+\subsection*{b)}
+
+Figures A and B do not have deadlocks, as they do not contain any cycles. Figure C, although having cycles, does not have deadlocks.  
+
+For Figure A, the order can be: T2 releases 1 instance of R2; 1 instance of R2 is allocated to T3; T3 releases 1 instance of R2; 1 instance of R2 is allocated to T1; T1 releases 1 instance of R2 and R1.  
+
+For Figure B, the order can be: T3 releases 1 instance of R3; 1 instance of R3 is allocated to T2; T2 releases 1 instance of R1 and R2; 1 instance of R1 is allocated to T1; T1 releases 1 instance of R1 and R2.  
+
+For Figure C, the order can be: T4 releases 1 instance of R2 and R3; 1 instance of R2 is allocated to T2; T2 releases 1 instance of R2 and R3; 1 instance of R2 is allocated to T1; T1 releases 1 instance of R1 and R2; 1 instance of R2 is allocated to T3; T3 releases 1 instance of R1 and R2.
+
+\subsection*{c)}
+
+Figure C may have deadlocks, as it is the only one with cycles in its graph. However, T4 should eventually release R3 and R2, causing R1 accessible to T1. Once T1 is completed and releases R1 and R2, no cycle can be found again. Thus, there is no actual deadlock in this figure.
+
+\newpage
+
+\section{Question 7 - Banker's Algorithm}
+
+Given the following system snapshot:
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c|cccc|cccc|cccc|}
+        \hline
+        \textbf{Processes} & \multicolumn{4}{c|}{\textbf{Allocation}} & \multicolumn{4}{c|}{\textbf{Max}} & \multicolumn{4}{c|}{\textbf{Available}} \\
+        \hline
+        & A & B & C & D & A & B & C & D & A & B & C & D \\
+        \hline
+        P0 & 0 & 0 & 1 & 2 & 0 & 0 & 1 & 2 & 1 & 5 & 2 & 0 \\
+        P1 & 1 & 0 & 0 & 0 & 1 & 7 & 5 & 0 &  &  &  &  \\
+        P2 & 0 & 3 & 5 & 4 & 2 & 3 & 5 & 6 &  &  &  &  \\
+        P3 & 0 & 6 & 3 & 2 & 0 & 6 & 5 & 2 &  &  &  &  \\
+        P4 & 0 & 0 & 1 & 4 & 0 & 6 & 5 & 6 &  &  &  &  \\
+        \hline
+    \end{tabular}
+    \caption{Resource Allocation Table}
+\end{table}
+
+\begin{enumerate}[label=\arabic*)]
+    \item List the number of instances per resource. List down the need matrix.
+    \item Assume process P1 requests for (0, 4, 2, 0), can the request be granted immediately? Explain your answer.
+    \item Run the Banker's safety check algorithm. Answer whether the system is in a safe state. Explain your answer.
+    \item Identify a safe sequence of processes.
+\end{enumerate}
+
+\subsection*{Solution}
+
+\subsection*{a)}
+
+The total number of instances per resource is calculated as the sum of allocated resources plus the currently available resources:
+
+\vspace{-10pt}
+\[
+\begin{aligned}
+R0 &= (0 + 1 + 0 + 0 + 0) + 1 = 2 \\
+R1 &= (0 + 0 + 3 + 6 + 0) + 5 = 14 \\
+R2 &= (1 + 0 + 5 + 3 + 1) + 2 = 12 \\
+R3 &= (2 + 0 + 4 + 2 + 4) + 0 = 12
+\end{aligned}
+\]
+
+Therefore, the total number of instances for each resource type is:
+\[
+R0 = 2, \quad R1 = 14, \quad R2 = 12, \quad R3 = 12
+\]
+
+\vspace{-10pt}
+The Need Matrix represents the remaining resources each process still needs to complete its execution. It is calculated as Need = Max - Allocation:
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|cccc|}
+        \hline
+        \textbf{Process} & R0 & R1 & R2 & R3 \\
+        \hline
+        P0 & $0-0=0$ & $0-0=0$ & $1-1=0$ & $2-2=0$ \\
+        P1 & $1-1=0$ & $7-0=7$ & $5-0=5$ & $0-0=0$ \\
+        P2 & $2-1=1$ & $3-3=0$ & $5-5=0$ & $6-4=2$ \\
+        P3 & $0-0=0$ & $6-6=0$ & $5-3=2$ & $2-2=0$ \\
+        P4 & $0-0=0$ & $6-0=6$ & $5-1=4$ & $6-4=2$ \\
+        \hline
+    \end{tabular}
+    \caption{Need Matrix}
+\end{table}
+
+
+\newpage
+
+\subsection*{b)}
+
+Let 
+\[
+\text{Request}_{P1} = (0, 4, 2, 0)
+\]
+
+\textbf{Step 1: Check if Request $\le$ Need}  
+
+The request must not exceed P1's maximum declared need:
+
+\[
+\text{Need}_{P1} = (0, 7, 5, 0), \quad 
+\text{Request}_{P1} = (0, 4, 2, 0)
+\]
+
+\[
+0 \le 0, \quad 4 \le 7, \quad 2 \le 5, \quad 0 \le 0
+\]
+
+All conditions are satisfied. Therefore,
+\[
+\text{Request}_{P1} \le \text{Need}_{P1}
+\]
+
+\medskip
+
+\textbf{Step 2: Check if Request $\le$ Available}  
+
+The request must not exceed the currently available resources:
+
+\[
+\text{Available} = (1, 5, 2, 0), \quad 
+\text{Request}_{P1} = (0, 4, 2, 0)
+\]
+
+\[
+0 \le 1, \quad 4 \le 5, \quad 2 \le 2, \quad 0 \le 0
+\]
+
+All conditions are satisfied. Therefore,
+\[
+\text{Request}_{P1} \le \text{Available}
+\]
+
+\medskip
+
+Since both conditions are met, the request for P1 can be granted immediately in terms of current availability and P1's declared maximum need. However, to ensure the system remains in a safe state after granting the request, we must perform a safety check.
+
+\subsection*{c)}
+
+Let's assume P1's request for $(0, 4, 2, 0)$ is granted. The system state would change as follows:
+
+\textbf{New Allocation for P1:}
+\[
+\begin{aligned}
+\text{Old Allocation}_{P1} &= (1, 0, 0, 0) \\
+\text{Request}_{P1} &= (0, 4, 2, 0) \\
+\text{New Allocation}_{P1} &= (1+0, 0+4, 0+2, 0+0) = (1, 4, 2, 0)
+\end{aligned}
+\]
+
+\textbf{New Available Resources:}
+\[
+\begin{aligned}
+\text{Old Available} &= (1, 5, 2, 0) \\
+\text{Request}_{P1} &= (0, 4, 2, 0) \\
+\text{New Available} &= (1-0, 5-4, 2-2, 0-0) = (1, 1, 0, 0)
+\end{aligned}
+\]
+
+\textbf{New Need for P1:}
+\[
+\begin{aligned}
+\text{Old Need}_{P1} &= (0, 7, 5, 0) \\
+\text{Request}_{P1} &= (0, 4, 2, 0) \\
+\text{New Need}_{P1} &= (0-0, 7-4, 5-2, 0-0) = (0, 3, 3, 0)
+\end{aligned}
+\]
+
+\medskip
+
+Now, we run the Banker's Safety Algorithm with the new system state:
+
+\textbf{Updated Allocation Matrix:}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|cccc|}
+\hline
+Process & R0 & R1 & R2 & R3 \\
+\hline
+P0 & 0 & 0 & 1 & 2 \\
+P1 & 1 & 4 & 2 & 0 \\
+P2 & 1 & 3 & 5 & 4 \\
+P3 & 0 & 6 & 3 & 2 \\
+P4 & 0 & 0 & 1 & 4 \\
+\hline
+\end{tabular}
+\caption{Updated Allocation Matrix}
+\end{table}
+
+\textbf{Updated Need Matrix:}
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|cccc|}
+\hline
+Process & R0 & R1 & R2 & R3 \\
+\hline
+P0 & 0 & 0 & 0 & 0 \\
+P1 & 0 & 3 & 3 & 0 \\
+P2 & 1 & 0 & 0 & 2 \\
+P3 & 0 & 0 & 2 & 0 \\
+P4 & 0 & 6 & 4 & 2 \\
+\hline
+\end{tabular}
+\caption{Updated Need Matrix}
+\end{table}
+
+\textbf{Updated Available Vector:}
+\[
+\text{Available}^{new} = (1, 1, 0, 0)
+\]
+
+\medskip
+
+\textbf{Safety Algorithm Steps:}
+
+\begin{itemize}
+    \item Initialize $\text{Work} = \text{Available}^{new} = (1, 1, 0, 0)$
+    \item Initialize $\text{Finish} = [\text{False}, \text{False}, \text{False}, \text{False}, \text{False}]$ for P0 to P4.
+    \item Iteration 1:  
+        P0: Need = (0, 0, 0, 0). Is Need$_{P0} \le$ Work? $(0\le1, 0\le1, 0\le0, 0\le0)$ → True.  
+        Work = Work + Allocation$_{P0}$ = $(1,1,0,0) + (0,0,1,2) = (1,1,1,2)$  
+        Finish[P0] = True
+    \item Iteration 2: (Processes P1, P2, P3, P4 are still False)  
+        P1: Need = (0,3,3,0). Is Need$_{P1} \le$ Work? $(0\le1, 3\le1, 3\le1, 0\le2)$ → False.  
+        P2: Need = (1,0,0,2). Is Need$_{P2} \le$ Work? $(1\le1,0\le1,0\le1,2\le2)$ → True.  
+        Work = Work + Allocation$_{P2}$ = $(1,1,1,2) + (1,3,5,4) = (2,4,6,6)$  
+        Finish[P2] = True
+    \item Iteration 3: (Processes P1, P3, P4 are still False)  
+        P1: Need = (0,3,3,0). Is Need$_{P1} \le$ Work? $(0\le2,3\le4,3\le6,0\le6)$ → True.  
+        Work = Work + Allocation$_{P1}$ = $(2,4,6,6) + (1,4,2,0) = (3,8,8,6)$  
+        Finish[P1] = True  
+        P3: Need = (0,0,2,0). Is Need$_{P3} \le$ Work? $(0\le3,0\le8,2\le8,0\le6)$ → True.  
+        Work = Work + Allocation$_{P3}$ = $(3,8,8,6) + (0,6,3,2) = (3,14,11,8)$  
+        Finish[P3] = True  
+        P4: Need = (0,6,4,2). Is Need$_{P4} \le$ Work? $(0\le3,6\le14,4\le11,2\le8)$ → True.  
+        Work = Work + Allocation$_{P4}$ = $(3,14,11,8) + (0,0,1,4) = (3,14,12,12)$  
+        Finish[P4] = True
+\end{itemize}
+
+All processes have Finish[i] = True.  
+
+\textbf{Conclusion:} Yes, the system is in a safe state after P1's request for $(0,4,2,0)$ is granted, because a safe sequence exists.
+
 
 \end{document}
