@@ -2,7 +2,7 @@
 
 \begin{document}
 
-\section{Question 1}
+\section{Question 1 - Scheduling Algorithms}
 
 Consider the following set of processes, with the length of the CPU burst given in milliseconds.  
 A smaller priority number implies a higher priority.
@@ -32,7 +32,7 @@ For each of the following scheduling algorithms FCFS, preemptive SRTF, non-preme
 
 \subsection*{Solution}
 
-\subsection*{Gantt Charts}
+\subsection*{a) Gantt Charts}
 
 \begin{figure}[H]
     \centering
@@ -114,7 +114,7 @@ For each of the following scheduling algorithms FCFS, preemptive SRTF, non-preme
     \caption{Round Robin (quantum = 4)}
 \end{figure}
 
-\subsection*{Turnaround Times}
+\subsection*{b) Turnaround Times}
 
 \begin{table}[h!]
     \centering
@@ -131,7 +131,7 @@ For each of the following scheduling algorithms FCFS, preemptive SRTF, non-preme
     \end{tabular}
 \end{table}
 
-\subsection*{Waiting Times}
+\subsection*{c) Waiting Times}
 
 \begin{table}[h!]
     \centering
@@ -148,7 +148,7 @@ For each of the following scheduling algorithms FCFS, preemptive SRTF, non-preme
     \end{tabular}
 \end{table}
 
-\subsection*{Minimum Average Waiting Times}
+\subsection*{d) Minimum Average Waiting Times}
 
 The average waiting times of the algorithms are:
 
@@ -161,6 +161,41 @@ The average waiting times of the algorithms are:
 \end{itemize}
 
 Thus, \textbf{Preemptive SRTF} has the minimum average waiting time.
+
+\newpage
+
+\section{Question 2 - Scheduler Criteria}
+
+Provide concrete examples to illustrate scenarios when the following scheduling criteria conflict:
+
+\begin{enumerate}[label=\alph*)]
+    \item Average Turnaround Time vs Maximum Waiting Time
+    \item Response Time vs Maximum Waiting Time
+    \item System Job Throughput vs Response Time
+\end{enumerate}
+
+\subsection*{Solution}
+
+\subsection*{a) Average Turnaround Time and Maximum Waiting Time}
+
+In this case, if we want to minimise average turnaround time and maximum waiting time, it can lead to conflicts. If process A is currently running, and the waiting time of some process in the ready queue has reached its maximum, process A will be interrupted and replaced by the new process. 
+In one example, If we minimise the maximum waiting time to some minimum value k, and set the number of processes in the ready queue to be large, there will be a large number of new processes replacing previous processes. It will take a long time until a single process is fully completed, thus increasing the average turnaround time (this is a conflict).
+
+In another example, if we want to minimise the average turnaround time, we cannot have too much context switching between processes. Processes will most likely run indefinitely until process finishes. If a particular process takes a very long time to run, the waiting time of the other processes will increase. The maximum waiting time must thus be increased to accommodate less context switching. Average turnaround time is reduced but maximum waiting time is increased.
+
+\subsection*{b) Response Time and Maximum Waiting Time}
+
+In this case, if we want to minimise response time and maximum waiting time, it can lead to conflicts. 
+One example that will be given here is similar to the one above. Assume we set the number of processes in the ready queue to be large, and have their burst times be similar but much larger than their maximum waiting time. We assume the maximum waiting time in this case is minimised. Once the first process is run, it won’t take long until it is replaced by another process in the queue. This process of replacing continues to happen again and again. Given that the number of processes to run is large, it will take a long time until a single process is thoroughly completed for the first time, thus increasing response time.
+
+Another example is if we wish to minimise response time. Imagine a scenario of time-consuming processes of similar length. To minimise response time, the processes should run without interruption until termination, as interruptions create overhead, delaying any process from being completed first. When a process runs without interruption, the waiting time of the remaining processes increases. If we try to minimise the maximum waiting time in this case, more interruptions will be caused, thus increasing response time. Minimising one side increases the other side. This is a conflict.
+
+
+\subsection*{c) System Job Throughput and Response Time}
+
+In this case, if we want to minimise response time and maximise throughput, it can lead to conflicts. This is mainly caused by the overhead created when we do context switching.
+
+An example would be: Consider a system where there are “quick” processes and “slow” processes running, e.g. retrieving an HTML file and rendering a large file respectively. Imagine the slow process is running in the background. If we minimise response time, when the call for the quick process is received, to reduce response time and have a response returned as soon as possible, the slow process will be switched to the quick process and switched back once completed. This indeed reduces response time; however, due to the overhead created by context switching, the time taken to complete the slow processes increases, thus the system job throughput decreases.
 
 \newpage
 
