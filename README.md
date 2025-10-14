@@ -5,6 +5,7 @@ This repository contains coursework for the Operating Systems course.
 ## Assignments
 
 - [Assignment 1](assignment_1/)
+- [Assignment 2](assignment_2/)
 
 ## Submission
 
