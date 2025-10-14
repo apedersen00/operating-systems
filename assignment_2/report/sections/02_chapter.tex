@@ -30,7 +30,7 @@ For each of the following scheduling algorithms FCFS, preemptive SRTF, non-preme
     \item Determine which algorithm results in the \textbf{minimum average waiting time}.
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 \subsection*{a) Gantt Charts}
 
@@ -174,7 +174,7 @@ Provide concrete examples to illustrate scenarios when the following scheduling 
     \item System Job Throughput vs Response Time
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 \subsection*{a) Average Turnaround Time and Maximum Waiting Time}
 
@@ -212,7 +212,7 @@ Write a C program to use a group of threads to parallelize the sum of an array.
     \item Make a bar chart to visualize your results.
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 To parallelize the summing of the array, we first generate the array and compute the serial sum. The array is filled with random floats in range $[0, 1]$ using \lstinline{rand()}:
 
@@ -339,7 +339,7 @@ Write a C program to create a group of threads to parallelize building the histo
     \item Plots that visualize the output histogram. Analyze your results.
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 To parallelize the histogram binning of the array, we first generate the array and compute the serial histogram:
 
@@ -475,7 +475,7 @@ Compare and swap (CAS) instructions leverages hardware atomics on today's comput
     \item Run your program with 1, 2, 4, 8, 16, 32 threads.
 \end{itemize}
 
-\subsection*{Solution}
+\solution
 
 We define a simple node struct for the linked-list, along with a global pointer, \texttt{top} which always points to the head of the stack. A global counter, \texttt{global\_node\_id} is used to generate unique IDs for each node pushed by the threads.
 
@@ -690,7 +690,7 @@ Recall that a resource-allocation graph without cycles has no deadlock, and a re
     \item Which graph may have deadlocks? Recall that a cycle in the resource-allocation graph does not necessarily mean deadlock. For those situations that are deadlocked, provide the cycle of threads and resources. For example, \{T0->R0->T1->R1->T0\}.
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 \subsection*{a)}
 
@@ -733,17 +733,17 @@ Given the following system snapshot:
         P4 & 0 & 0 & 1 & 4 & 0 & 6 & 5 & 6 &  &  &  &  \\
         \hline
     \end{tabular}
-    \caption{Resource Allocation Table}
+    \caption{System Snapshot}
 \end{table}
 
-\begin{enumerate}[label=\arabic*)]
+\begin{enumerate}[label=\alph*)]
     \item List the number of instances per resource. List down the need matrix.
     \item Assume process P1 requests for (0, 4, 2, 0), can the request be granted immediately? Explain your answer.
     \item Run the Banker's safety check algorithm. Answer whether the system is in a safe state. Explain your answer.
     \item Identify a safe sequence of processes.
 \end{enumerate}
 
-\subsection*{Solution}
+\solution
 
 \subsection*{a)}
 
@@ -908,40 +908,199 @@ P4 & 0 & 6 & 4 & 2 \\
 
 \textbf{Updated Available Vector:}
 \[
-\text{Available}^{new} = (1, 1, 0, 0)
+\text{Available}_{new} = (1, 1, 0, 0)
 \]
 
 \medskip
 
 \textbf{Safety Algorithm Steps:}
 
-\begin{itemize}
-    \item Initialize $\text{Work} = \text{Available}^{new} = (1, 1, 0, 0)$
+\begin{enumerate}
+    \item Initialize $\text{Work} = \text{Available}_{new} = (1, 1, 0, 0)$
     \item Initialize $\text{Finish} = [\text{False}, \text{False}, \text{False}, \text{False}, \text{False}]$ for P0 to P4.
-    \item Iteration 1:  
-        P0: Need = (0, 0, 0, 0). Is Need$_{P0} \le$ Work? $(0\le1, 0\le1, 0\le0, 0\le0)$ → True.  
-        Work = Work + Allocation$_{P0}$ = $(1,1,0,0) + (0,0,1,2) = (1,1,1,2)$  
-        Finish[P0] = True
-    \item Iteration 2: (Processes P1, P2, P3, P4 are still False)  
-        P1: Need = (0,3,3,0). Is Need$_{P1} \le$ Work? $(0\le1, 3\le1, 3\le1, 0\le2)$ → False.  
-        P2: Need = (1,0,0,2). Is Need$_{P2} \le$ Work? $(1\le1,0\le1,0\le1,2\le2)$ → True.  
-        Work = Work + Allocation$_{P2}$ = $(1,1,1,2) + (1,3,5,4) = (2,4,6,6)$  
-        Finish[P2] = True
-    \item Iteration 3: (Processes P1, P3, P4 are still False)  
-        P1: Need = (0,3,3,0). Is Need$_{P1} \le$ Work? $(0\le2,3\le4,3\le6,0\le6)$ → True.  
-        Work = Work + Allocation$_{P1}$ = $(2,4,6,6) + (1,4,2,0) = (3,8,8,6)$  
-        Finish[P1] = True  
-        P3: Need = (0,0,2,0). Is Need$_{P3} \le$ Work? $(0\le3,0\le8,2\le8,0\le6)$ → True.  
-        Work = Work + Allocation$_{P3}$ = $(3,8,8,6) + (0,6,3,2) = (3,14,11,8)$  
-        Finish[P3] = True  
-        P4: Need = (0,6,4,2). Is Need$_{P4} \le$ Work? $(0\le3,6\le14,4\le11,2\le8)$ → True.  
-        Work = Work + Allocation$_{P4}$ = $(3,14,11,8) + (0,0,1,4) = (3,14,12,12)$  
-        Finish[P4] = True
+\end{enumerate}
+
+\textbf{Iteration 1}
+
+\begin{itemize}
+    \item P0: Need = (0, 0, 0, 0). Is Need$_{P0} \le$ Work? $(0\le1, 0\le1, 0\le0, 0\le0)$ → True.
+        \begin{itemize}
+            \item Work = Work + Allocation$_{P0}$ = $(1,1,0,0) + (0,0,1,2) = (1,1,1,2)$  
+            \item Finish[P0] = True
+        \end{itemize}
+\end{itemize}
+
+\textbf{Iteration 2 (Processes P1, P2, P3, P4 are still False)}
+
+\begin{itemize}
+    \item P1: Need = (0, 3, 3, 0). Is Need$_{P1} \le$ Work? $(0\le1, 3\le1, 3\le1, 0\le2)$ → False (3>1)
+    \item P2: Need = (1, 0, 0, 2). Is Need$_{P2} \le$ Work? $(1\le1, 0\le1, 0\le1, 2\le2)$ → True.
+        \begin{itemize}
+            \item Work = Work + Allocation$_{P2}$ = $(1,1,1,2) + (1,3,5,4) = (2,4,6,6)$  
+            \item Finish[P2] = True
+        \end{itemize}
+\end{itemize}
+
+\textbf{Iteration 3 (Processes P1, P3, P4 are still False)}
+
+\begin{itemize}
+    \item P1: Need = (0, 3, 3, 0). Is Need$_{P1} \le$ Work? $(0\le2, 3\le4, 3\le6, 0\le6)$ → True.
+        \begin{itemize}
+            \item Work = Work + Allocation$_{P1}$ = $(2,4,6,6) + (1,4,2,0) = (3,8,8,6)$  
+            \item Finish[P1] = True
+        \end{itemize}
+    \item P3: Need = (0, 0, 2, 0). Is Need$_{P3} \le$ Work? $(0\le3, 0\le8, 2\le8, 0\le6)$ → True.
+        \begin{itemize}
+            \item Work = Work + Allocation$_{P3}$ = $(3,8,8,6) + (0,6,3,2) = (3,14,11,8)$  
+            \item Finish[P3] = True
+        \end{itemize}
+    \item P4: Need = (0, 6, 4, 2). Is Need$_{P4} \le$ Work? $(0\le3, 6\le14, 4\le11, 2\le8)$ → True.
+        \begin{itemize}
+            \item Work = Work + Allocation$_{P4}$ = $(3,14,11,8) + (0,0,1,4) = (3,14,12,12)$  
+            \item Finish[P4] = True
+        \end{itemize}
 \end{itemize}
 
 All processes have Finish[i] = True.  
 
 \textbf{Conclusion:} Yes, the system is in a safe state after P1's request for $(0,4,2,0)$ is granted, because a safe sequence exists.
 
+\subsection*{d)}
+
+Based on the safety check above, a safe sequence is:
+
+\[
+<P0, P2, P1, P3, P4>
+\]
+
+This sequence demonstrates that all processes can complete their execution without causing a deadlock, even after P1's request is granted.
+
+\newpage
+
+\section{Question 8 - Minimum Resources}
+
+Given the following system snapshot:
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{|c|cccc|cccc|cccc|}
+        \hline
+        \textbf{Processes} & \multicolumn{4}{c|}{\textbf{Allocation}} & \multicolumn{4}{c|}{\textbf{Max}} & \multicolumn{4}{c|}{\textbf{Available}} \\
+        \hline
+        & A & B & C & D & A & B & C & D & A & B & C & D \\
+        \hline
+        P0 & 1 & 0 & 1 & 2 & 1 & 0 & 1 & 2 & 0 & x & 4 & 1 \\
+        P1 & 1 & 0 & 3 & 0 & 1 & 7 & 5 & 0 &  &  &  &  \\
+        P2 & 1 & 3 & 5 & 4 & 2 & 3 & 5 & 6 &  &  &  &  \\
+        P3 & 0 & 2 & 3 & 2 & 0 & 6 & 5 & 2 &  &  &  &  \\
+        \hline
+    \end{tabular}
+    \caption{System Snapshot}
+\end{table}
+
+Determine the smallest value of x for which this is a safe state. Briefly explain how you derive the answer.
+
+\solution
+
+\textbf{Step 1: Compute the Need Matrix}  
+
+The Need matrix is calculated as $\text{Need} = \text{Max} - \text{Allocation}$.
+
+\[
+\begin{aligned}
+\text{P0 Need} &= [1, 0, 1, 2] - [1, 0, 1, 2] = [0, 0, 0, 0] \\
+\text{P1 Need} &= [1, 7, 5, 0] - [1, 0, 3, 0] = [0, 7, 2, 0] \\
+\text{P2 Need} &= [2, 3, 5, 6] - [1, 3, 5, 4] = [1, 0, 0, 2] \\
+\text{P3 Need} &= [0, 6, 5, 2] - [0, 2, 3, 2] = [0, 4, 2, 0]
+\end{aligned}
+\]
+
+\begin{table}[h!]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+\textbf{Process} & \textbf{Need} \\
+\hline
+P0 & [0, 0, 0, 0] \\
+P1 & [0, 7, 2, 0] \\
+P2 & [1, 0, 0, 2] \\
+P3 & [0, 4, 2, 0] \\
+\hline
+\end{tabular}
+\caption{Need Matrix}
+\end{table}
+
+\medskip
+
+\textbf{Step 2: Determine a Safe Sequence Using the Banker's Algorithm}  
+
+For a state to be safe, there must exist a sequence of processes such that each process's Need is less than or equal to the Available resources. When a process executes, its Allocation is added back to Available.  
+
+Let the initial Available vector be $[0, x, 4, 1]$. We try to find a safe sequence:
+
+\medskip
+\textbf{Trial 1: P0}  
+
+\[
+\text{Need}_{P0} = [0,0,0,0], \quad \text{Available} = [0, x, 4, 1]
+\]
+
+Since $\text{Need}_{P0} \le \text{Available}$ for any $x \ge 0$, P0 can execute.  
+
+\[
+\text{Available} = \text{Available} + \text{Allocation}_{P0} = [0,x,4,1] + [1,0,1,2] = [1,x,5,3]
+\]
+
+\medskip
+\textbf{Trial 2: P3}  
+
+\[
+\text{Need}_{P3} = [0,4,2,0], \quad \text{Available} = [1,x,5,3]
+\]
+
+For P3 to execute, $[0,4,2,0] \le [1,x,5,3]$, which requires $x \ge 4$. If P3 executes:
+
+\[
+\text{Available} = [1,x,5,3] + [0,2,3,2] = [1,x+2,8,5]
+\]
+
+\medskip
+\textbf{Trial 3: P2}  
+
+\[
+\text{Need}_{P2} = [1,0,0,2], \quad \text{Available} = [1,x+2,8,5]
+\]
+
+Since $[1,0,0,2] \le [1,x+2,8,5]$, P2 can execute.  
+
+\[
+\text{Available} = [1,x+2,8,5] + [1,3,5,4] = [2,x+5,13,9]
+\]
+
+\medskip
+\textbf{Trial 4: P1}  
+
+\[
+\text{Need}_{P1} = [0,7,2,0], \quad \text{Available} = [2,x+5,13,9]
+\]
+
+To execute, $[0,7,2,0] \le [2,x+5,13,9]$ requires $7 \le x+5 \Rightarrow x \ge 2$.  
+
+\medskip
+\textbf{Combining Conditions:}  
+
+From P3: $x \ge 4$ \\
+From P1: $x \ge 2$  
+
+\noindent Therefore, the smallest value of $x$ that satisfies all conditions is $x = 4$.  
+
+\medskip
+\textbf{Safe Sequence:}  
+
+A possible safe sequence for $x=4$ is:
+
+\[
+\langle P0, P3, P2, P1 \rangle
+\]
 
 \end{document}
